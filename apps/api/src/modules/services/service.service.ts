@@ -4,6 +4,7 @@ import {
   findAllServices,
   findServiceById,
   findServiceDependencies,
+  findServiceDependents,
 } from "./service.repository";
 
 
@@ -43,5 +44,26 @@ export async function getServiceDependencies(
   return {
     service,
     dependencies,
+  };
+}
+export async function getServiceDependents(
+  serviceId: string,
+) {
+  const service = await findServiceById(serviceId);
+
+  if (!service) {
+    throw new AppError(
+      404,
+      "SERVICE_NOT_FOUND",
+      `Service '${serviceId}' was not found`,
+    );
+  }
+
+  const dependents =
+    await findServiceDependents(serviceId);
+
+  return {
+    service,
+    dependents,
   };
 }

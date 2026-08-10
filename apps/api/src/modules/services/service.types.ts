@@ -32,3 +32,16 @@ export interface ServiceDependency {
   criticality: string;
   depth: number;
 }
+
+export type DependentType =
+  | "Service"
+  | "Application";
+
+export interface ServiceDependent {
+  id: string;
+  name: string;
+  type: DependentType;
+  status: string;
+  criticality: string;
+  depth: number;
+}

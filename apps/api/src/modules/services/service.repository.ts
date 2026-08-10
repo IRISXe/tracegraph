@@ -3,7 +3,9 @@ import { driver } from "../../db/cognodb";
 import type {
   Service,
   ServiceDependency,
+  ServiceDependent,
 } from "./service.types";
+
 
 function mapService(properties: Record<string, unknown>): Service {
   return {
@@ -113,6 +115,56 @@ export async function findServiceDependencies(
         id: String(node.properties.id),
         name: String(node.properties.name),
         type: labels[0] as ServiceDependency["type"],
+        status: String(node.properties.status),
+        criticality: String(node.properties.criticality),
+        depth: Number(depth.toString()),
+      };
+    });
+  } finally {
+    await session.close();
+  }
+}
+export async function findServiceDependents(
+  serviceId: string,
+): Promise<ServiceDependent[]> {
+  const session = driver.session();
+
+  try {
+    const result = await session.run(
+      `
+      MATCH path =
+        (dependent)
+        -[:DEPENDS_ON*1..4]->
+        (target:Service {id: $serviceId})
+
+      WHERE dependent:Service
+         OR dependent:Application
+
+      WITH
+        dependent,
+        min(length(path)) AS depth
+
+      RETURN
+        dependent,
+        labels(dependent) AS labels,
+        depth
+
+      ORDER BY depth, dependent.name
+      `,
+      {
+        serviceId,
+      },
+    );
+
+    return result.records.map((record) => {
+      const node = record.get("dependent");
+      const labels = record.get("labels") as string[];
+      const depth = record.get("depth");
+
+      return {
+        id: String(node.properties.id),
+        name: String(node.properties.name),
+        type: labels[0] as ServiceDependent["type"],
         status: String(node.properties.status),
         criticality: String(node.properties.criticality),
         depth: Number(depth.toString()),

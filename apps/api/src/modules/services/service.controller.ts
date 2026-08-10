@@ -7,6 +7,7 @@ import type {
 import {
   getServiceById,
   getServiceDependencies,
+  getServiceDependents,
   getServices,
 } from "./service.service";
 
@@ -49,6 +50,23 @@ export async function getDependencies(
 ) {
   try {
     const result = await getServiceDependencies(
+      req.params.id,
+    );
+
+    res.status(200).json({
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+export async function getDependents(
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await getServiceDependents(
       req.params.id,
     );
 
