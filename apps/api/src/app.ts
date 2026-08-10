@@ -2,35 +2,76 @@ import cors from "cors";
 import express from "express";
 
 import { env } from "./config/env";
+
 import { errorHandler } from "./middleware/error-handler";
-import serviceRouter from "./modules/services/service.routes";
+import { notFoundHandler } from "./middleware/not-found";
+
 import dashboardRouter from "./modules/dashboard/dashboard.routes";
-import incidentRouter from "./modules/incidents/incident.routes";
 import graphRouter from "./modules/graph/graph.routes";
+import incidentRouter from "./modules/incidents/incident.routes";
+import serviceRouter from "./modules/services/service.routes";
 
-const app = express();
+export const app = express();
 
+/*
+ * Global middleware
+ */
 app.use(
   cors({
     origin: env.CORS_ORIGIN,
   }),
 );
 
-app.get("/api/health", (_req, res) => {
-  res.status(200).json({
-    status: "ok",
-    service: "tracegraph-api",
-  });
-});
+app.use(express.json());
 
-app.use("/api/dashboard", dashboardRouter);
+/*
+ * Health check
+ */
+app.get(
+  "/health",
+  (_req, res) => {
+    res.status(200).json({
+      data: {
+        status: "ok",
+        service: "tracegraph-api",
+      },
+    });
+  },
+);
 
-app.use("/api/services", serviceRouter);
+/*
+ * Application routes
+ */
+app.use(
+  "/api/dashboard",
+  dashboardRouter,
+);
 
-app.use("/api/incidents", incidentRouter);
+app.use(
+  "/api/services",
+  serviceRouter,
+);
 
-app.use("/api/graph", graphRouter);
+app.use(
+  "/api/incidents",
+  incidentRouter,
+);
 
+app.use(
+  "/api/graph",
+  graphRouter,
+);
+
+/*
+ * Catch requests that didn't
+ * match any route above.
+ */
+app.use(notFoundHandler);
+
+/*
+ * Error handler must always
+ * remain last.
+ */
 app.use(errorHandler);
 
 export default app;
