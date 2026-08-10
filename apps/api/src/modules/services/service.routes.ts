@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  getBlastRadius,
   getDependencies,
   getDependents,
   getOwner,
@@ -25,6 +26,11 @@ serviceRouter.get(
 serviceRouter.get(
   "/:id/owner",
   getOwner,
+);
+
+serviceRouter.get(
+  "/:id/blast-radius",
+  getBlastRadius,
 );
 
 serviceRouter.get("/:id", getService);

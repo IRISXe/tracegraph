@@ -5,6 +5,7 @@ import type {
 } from "express";
 
 import {
+  getServiceBlastRadius,
   getServiceById,
   getServiceDependencies,
   getServiceDependents,
@@ -85,6 +86,23 @@ export async function getOwner(
 ) {
   try {
     const result = await getServiceOwner(
+      req.params.id,
+    );
+
+    res.status(200).json({
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+export async function getBlastRadius(
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await getServiceBlastRadius(
       req.params.id,
     );
 

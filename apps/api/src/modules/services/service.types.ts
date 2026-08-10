@@ -50,3 +50,16 @@ export interface ServiceOwner {
   name: string;
   email: string;
 }
+export interface BlastRadiusSummary {
+  affectedComponents: number;
+  affectedServices: number;
+  affectedApplications: number;
+  criticalComponents: number;
+  maximumDepth: number;
+}
+
+export interface ServiceBlastRadius {
+  service: Service;
+  summary: BlastRadiusSummary;
+  impactedComponents: ServiceDependent[];
+}
