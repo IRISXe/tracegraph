@@ -2,6 +2,8 @@ import cors from "cors";
 import express from "express";
 
 import { env } from "./config/env";
+import { errorHandler } from "./middleware/error-handler";
+import serviceRouter from "./modules/services/service.routes";
 
 const app = express();
 
@@ -19,5 +21,9 @@ app.get("/api/health", (_req, res) => {
     service: "tracegraph-api",
   });
 });
+
+app.use("/api/services", serviceRouter);
+
+app.use(errorHandler);
 
 export default app;
