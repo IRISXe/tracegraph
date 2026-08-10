@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  getDependencies,
   getService,
   listServices,
 } from "./service.controller";
@@ -8,6 +9,11 @@ import {
 const serviceRouter = Router();
 
 serviceRouter.get("/", listServices);
+
+serviceRouter.get(
+  "/:id/dependencies",
+  getDependencies,
+);
 
 serviceRouter.get("/:id", getService);
 

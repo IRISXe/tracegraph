@@ -19,3 +19,16 @@ export interface Service {
   criticality: ServiceCriticality;
   version: string;
 }
+export type DependencyType =
+  | "Service"
+  | "Database"
+  | "ExternalAPI";
+
+export interface ServiceDependency {
+  id: string;
+  name: string;
+  type: DependencyType;
+  status: string;
+  criticality: string;
+  depth: number;
+}

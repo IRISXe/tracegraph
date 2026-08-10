@@ -6,8 +6,10 @@ import type {
 
 import {
   getServiceById,
+  getServiceDependencies,
   getServices,
 } from "./service.service";
+
 
 export async function listServices(
   _req: Request,
@@ -35,6 +37,23 @@ export async function getService(
 
     res.status(200).json({
       data: service,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+export async function getDependencies(
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await getServiceDependencies(
+      req.params.id,
+    );
+
+    res.status(200).json({
+      data: result,
     });
   } catch (error) {
     next(error);
