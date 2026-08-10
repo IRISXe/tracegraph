@@ -10,7 +10,7 @@ import { GraphPage } from "../pages/GraphPage";
 import { IncidentsPage } from "../pages/IncidentsPage";
 import { ServicesPage } from "../pages/ServicesPage";
 import { ServiceDetailPage } from "../pages/ServiceDetailPage";
-import { IncidentDetailPage } from "../pages/Incidentdetailpage";
+import { IncidentDetailPage } from "../pages/IncidentDetailPage";
 
 export function AppRouter() {
   return (
