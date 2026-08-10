@@ -6,6 +6,7 @@ import { errorHandler } from "./middleware/error-handler";
 import serviceRouter from "./modules/services/service.routes";
 import dashboardRouter from "./modules/dashboard/dashboard.routes";
 import incidentRouter from "./modules/incidents/incident.routes";
+import graphRouter from "./modules/graph/graph.routes";
 
 const app = express();
 
@@ -27,6 +28,8 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api/services", serviceRouter);
 
 app.use("/api/incidents", incidentRouter);
+
+app.use("/api/graph", graphRouter);
 
 app.use(errorHandler);
 
