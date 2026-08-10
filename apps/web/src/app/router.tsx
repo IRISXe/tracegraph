@@ -10,6 +10,7 @@ import { GraphPage } from "../pages/GraphPage";
 import { IncidentsPage } from "../pages/IncidentsPage";
 import { ServicesPage } from "../pages/ServicesPage";
 import { ServiceDetailPage } from "../pages/ServiceDetailPage";
+import { IncidentDetailPage } from "../pages/Incidentdetailpage";
 
 export function AppRouter() {
   return (
@@ -50,6 +51,11 @@ export function AppRouter() {
   path="/services/:id"
   element={<ServiceDetailPage />}
 />
+
+      <Route
+        path="/incidents/:id"
+        element={<IncidentDetailPage />}
+      />
 
       <Route
         path="*"
