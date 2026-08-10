@@ -23,13 +23,19 @@ import type {
   InfrastructureFlowNode,
 } from "./graph-flow.types";
 
-import { GraphNodeInspector } from "./GraphNodeInspector";
+import {
+  GraphNodeInspector,
+  type GraphFocusMode,
+} from "./GraphNodeInspector";
+
 import {
   GraphToolbar,
   type GraphFilter,
 } from "./GraphToolbar";
+
 import { InfrastructureNode } from "./InfrastructureNode";
 import { transformGraphToFlow } from "./graph-layout";
+import { useServiceBlastRadius } from "./use-service-blast-radius";
 
 import type {
   GraphNode,
@@ -52,8 +58,10 @@ function createSearchText(
     Object.values(node.metadata)
       .filter(
         (value) =>
-          typeof value === "string" ||
-          typeof value === "number",
+          typeof value ===
+            "string" ||
+          typeof value ===
+            "number",
       )
       .map(String);
 
@@ -87,9 +95,17 @@ export function GraphExplorer({
   const [
     selectedNodeId,
     setSelectedNodeId,
-  ] = useState<string | null>(
-    null,
-  );
+  ] = useState<
+    string | null
+  >(null);
+
+  const [
+    focusMode,
+    setFocusMode,
+  ] =
+    useState<GraphFocusMode>(
+      "connections",
+    );
 
   const [
     reactFlowInstance,
@@ -103,7 +119,7 @@ export function GraphExplorer({
     >(null);
 
   /*
-   * Search + type filtering
+   * Search + type filtering.
    */
   const filteredTopology =
     useMemo(() => {
@@ -116,7 +132,8 @@ export function GraphExplorer({
         topology.nodes.filter(
           (node) => {
             const matchesType =
-              activeFilter === "All" ||
+              activeFilter ===
+                "All" ||
               node.type ===
                 activeFilter;
 
@@ -137,7 +154,8 @@ export function GraphExplorer({
       const visibleNodeIds =
         new Set(
           filteredNodes.map(
-            (node) => node.id,
+            (node) =>
+              node.id,
           ),
         );
 
@@ -153,8 +171,11 @@ export function GraphExplorer({
         );
 
       return {
-        nodes: filteredNodes,
-        edges: filteredEdges,
+        nodes:
+          filteredNodes,
+
+        edges:
+          filteredEdges,
       };
     }, [
       topology,
@@ -162,10 +183,6 @@ export function GraphExplorer({
       activeFilter,
     ]);
 
-  /*
-   * Transform backend graph into
-   * React Flow nodes and edges.
-   */
   const transformed =
     useMemo(
       () =>
@@ -193,10 +210,6 @@ export function GraphExplorer({
       [],
     );
 
-  /*
-   * Find the original domain node
-   * for the inspector.
-   */
   const selectedNode =
     useMemo(() => {
       if (!selectedNodeId) {
@@ -215,22 +228,42 @@ export function GraphExplorer({
       topology.nodes,
     ]);
 
+  const selectedServiceId =
+    selectedNode?.type ===
+    "Service"
+      ? selectedNode.id
+      : undefined;
+
+  const blastRadiusEnabled =
+    focusMode ===
+      "blast-radius" &&
+    Boolean(
+      selectedServiceId,
+    );
+
+  const {
+    data: blastRadius,
+    isLoading:
+      isBlastRadiusLoading,
+    isError:
+      isBlastRadiusError,
+  } = useServiceBlastRadius(
+    selectedServiceId,
+    blastRadiusEnabled,
+  );
+
   /*
-   * Determine direct neighborhood
-   * of selected node.
+   * Direct one-hop neighborhood.
    */
   const connectionState =
     useMemo(() => {
       if (!selectedNodeId) {
         return {
-          connectedNodeIds:
+          nodeIds:
             new Set<string>(),
 
-          connectedEdgeIds:
+          edgeIds:
             new Set<string>(),
-
-          incomingCount: 0,
-          outgoingCount: 0,
         };
       }
 
@@ -243,14 +276,11 @@ export function GraphExplorer({
 
       if (!selectedFlowNode) {
         return {
-          connectedNodeIds:
+          nodeIds:
             new Set<string>(),
 
-          connectedEdgeIds:
+          edgeIds:
             new Set<string>(),
-
-          incomingCount: 0,
-          outgoingCount: 0,
         };
       }
 
@@ -260,52 +290,33 @@ export function GraphExplorer({
           edges,
         );
 
-      const connectedNodeIds =
+      const nodeIds =
         new Set<string>([
           selectedNodeId,
         ]);
 
-      const connectedEdgeIds =
+      const edgeIds =
         new Set<string>();
-
-      let incomingCount = 0;
-      let outgoingCount = 0;
 
       connectedEdges.forEach(
         (edge) => {
-          connectedEdgeIds.add(
+          edgeIds.add(
             edge.id,
           );
 
-          connectedNodeIds.add(
+          nodeIds.add(
             edge.source,
           );
 
-          connectedNodeIds.add(
+          nodeIds.add(
             edge.target,
           );
-
-          if (
-            edge.target ===
-            selectedNodeId
-          ) {
-            incomingCount += 1;
-          }
-
-          if (
-            edge.source ===
-            selectedNodeId
-          ) {
-            outgoingCount += 1;
-          }
         },
       );
 
       return {
-        connectedNodeIds,
-        connectedEdgeIds,
-        incomingCount,
-        outgoingCount,
+        nodeIds,
+        edgeIds,
       };
     }, [
       selectedNodeId,
@@ -314,8 +325,97 @@ export function GraphExplorer({
     ]);
 
   /*
-   * Apply visual focus without changing
-   * the underlying graph state.
+   * Multi-hop blast radius.
+   *
+   * Blast radius only follows
+   * DEPENDS_ON relationships.
+   *
+   * It intentionally excludes
+   * ownership, incidents, databases
+   * and external APIs from the
+   * downstream impact chain.
+   */
+  const blastRadiusState =
+    useMemo(() => {
+      const nodeIds =
+        new Set<string>();
+
+      const edgeIds =
+        new Set<string>();
+
+      if (
+        !selectedNodeId ||
+        !blastRadius
+      ) {
+        return {
+          nodeIds,
+          edgeIds,
+        };
+      }
+
+      nodeIds.add(
+        selectedNodeId,
+      );
+
+      blastRadius
+        .impactedComponents
+        .forEach(
+          (component) => {
+            nodeIds.add(
+              component.id,
+            );
+          },
+        );
+
+      topology.edges.forEach(
+        (edge) => {
+          const belongsToImpactChain =
+            edge.type ===
+              "DEPENDS_ON" &&
+            nodeIds.has(
+              edge.source,
+            ) &&
+            nodeIds.has(
+              edge.target,
+            );
+
+          if (
+            belongsToImpactChain
+          ) {
+            edgeIds.add(
+              edge.id,
+            );
+          }
+        },
+      );
+
+      return {
+        nodeIds,
+        edgeIds,
+      };
+    }, [
+      selectedNodeId,
+      blastRadius,
+      topology.edges,
+    ]);
+
+  const blastRadiusActive =
+    focusMode ===
+      "blast-radius" &&
+    Boolean(blastRadius);
+
+  const activeNodeIds =
+    blastRadiusActive
+      ? blastRadiusState.nodeIds
+      : connectionState.nodeIds;
+
+  const activeEdgeIds =
+    blastRadiusActive
+      ? blastRadiusState.edgeIds
+      : connectionState.edgeIds;
+
+  /*
+   * Apply focus styling.
    */
   const displayNodes =
     useMemo(() => {
@@ -323,32 +423,34 @@ export function GraphExplorer({
         return nodes;
       }
 
-      return nodes.map((node) => {
-        const isConnected =
-          connectionState
-            .connectedNodeIds
-            .has(node.id);
+      return nodes.map(
+        (node) => {
+          const active =
+            activeNodeIds.has(
+              node.id,
+            );
 
-        return {
-          ...node,
+          return {
+            ...node,
 
-          style: {
-            ...node.style,
+            style: {
+              ...node.style,
 
-            opacity:
-              isConnected
-                ? 1
-                : 0.14,
+              opacity:
+                active
+                  ? 1
+                  : 0.12,
 
-            transition:
-              "opacity 180ms ease",
-          },
-        };
-      });
+              transition:
+                "opacity 180ms ease",
+            },
+          };
+        },
+      );
     }, [
       nodes,
       selectedNodeId,
-      connectionState,
+      activeNodeIds,
     ]);
 
   const displayEdges =
@@ -357,66 +459,74 @@ export function GraphExplorer({
         return edges;
       }
 
-      return edges.map((edge) => {
-        const isConnected =
-          connectionState
-            .connectedEdgeIds
-            .has(edge.id);
+      return edges.map(
+        (edge) => {
+          const active =
+            activeEdgeIds.has(
+              edge.id,
+            );
 
-        return {
-          ...edge,
+          const blast =
+            blastRadiusActive &&
+            active;
 
-          animated:
-            isConnected,
+          return {
+            ...edge,
 
-          style: {
-            ...edge.style,
+            animated: active,
 
-            stroke:
-              isConnected
-                ? "#8b5cf6"
+            style: {
+              ...edge.style,
+
+              stroke: active
+                ? blast
+                  ? "#f59e0b"
+                  : "#8b5cf6"
                 : "#334155",
 
-            strokeWidth:
-              isConnected
-                ? 2.4
-                : 1,
+              strokeWidth:
+                active
+                  ? 2.5
+                  : 1,
 
-            opacity:
-              isConnected
-                ? 1
-                : 0.07,
+              opacity:
+                active
+                  ? 1
+                  : 0.06,
 
-            transition:
-              "opacity 180ms ease",
-          },
+              transition:
+                "opacity 180ms ease",
+            },
 
-          labelStyle: {
-            ...edge.labelStyle,
+            labelStyle: {
+              ...edge.labelStyle,
 
-            fill:
-              isConnected
-                ? "#c4b5fd"
+              fill: active
+                ? blast
+                  ? "#fcd34d"
+                  : "#c4b5fd"
                 : "#64748b",
 
-            opacity:
-              isConnected
-                ? 1
-                : 0.08,
+              opacity:
+                active
+                  ? 1
+                  : 0.06,
 
-            fontSize: 9,
-          },
-        };
-      });
+              fontSize: 9,
+            },
+          };
+        },
+      );
     }, [
       edges,
       selectedNodeId,
-      connectionState,
+      activeEdgeIds,
+      blastRadiusActive,
     ]);
 
   /*
-   * Sync filtered topology into
-   * React Flow state.
+   * Sync filtered topology with
+   * controlled React Flow state.
    */
   useEffect(() => {
     setNodes(
@@ -429,46 +539,51 @@ export function GraphExplorer({
 
     if (
       !reactFlowInstance ||
-      transformed.nodes.length ===
-        0
+      transformed.nodes
+        .length === 0
     ) {
       return;
     }
 
     const frame =
-      window.requestAnimationFrame(
-        () => {
-          void reactFlowInstance.fitView(
-            {
-              nodes:
-                transformed.nodes.map(
-                  (node) => ({
-                    id: node.id,
-                  }),
-                ),
+      window
+        .requestAnimationFrame(
+          () => {
+            void reactFlowInstance.fitView(
+              {
+                nodes:
+                  transformed.nodes.map(
+                    (node) => ({
+                      id:
+                        node.id,
+                    }),
+                  ),
 
-              padding:
-                transformed.nodes
-                  .length === 1
-                  ? 0.8
-                  : 0.25,
+                padding:
+                  transformed.nodes
+                    .length ===
+                  1
+                    ? 0.8
+                    : 0.25,
 
-              maxZoom:
-                transformed.nodes
-                  .length === 1
-                  ? 1.15
-                  : 0.9,
+                maxZoom:
+                  transformed.nodes
+                    .length ===
+                  1
+                    ? 1.15
+                    : 0.9,
 
-              duration: 350,
-            },
-          );
-        },
-      );
+                duration: 350,
+              },
+            );
+          },
+        );
 
     return () => {
-      window.cancelAnimationFrame(
-        frame,
-      );
+      window
+        .cancelAnimationFrame(
+          frame,
+        );
     };
   }, [
     transformed,
@@ -478,8 +593,8 @@ export function GraphExplorer({
   ]);
 
   /*
-   * Close inspector if search/filter
-   * removes the selected node.
+   * Close selection if search/filter
+   * hides the selected node.
    */
   useEffect(() => {
     if (!selectedNodeId) {
@@ -494,7 +609,13 @@ export function GraphExplorer({
       );
 
     if (!stillVisible) {
-      setSelectedNodeId(null);
+      setSelectedNodeId(
+        null,
+      );
+
+      setFocusMode(
+        "connections",
+      );
     }
   }, [
     selectedNodeId,
@@ -502,9 +623,58 @@ export function GraphExplorer({
   ]);
 
   /*
-   * Select node and zoom to its
-   * direct neighborhood.
+   * When blast-radius data arrives,
+   * fit the entire impact chain.
    */
+  useEffect(() => {
+    if (
+      focusMode !==
+        "blast-radius" ||
+      !blastRadius ||
+      !reactFlowInstance ||
+      blastRadiusState
+        .nodeIds.size === 0
+    ) {
+      return;
+    }
+
+    const frame =
+      window
+        .requestAnimationFrame(
+          () => {
+            void reactFlowInstance.fitView(
+              {
+                nodes:
+                  Array.from(
+                    blastRadiusState
+                      .nodeIds,
+                  ).map(
+                    (id) => ({
+                      id,
+                    }),
+                  ),
+
+                padding: 0.4,
+                maxZoom: 0.95,
+                duration: 450,
+              },
+            );
+          },
+        );
+
+    return () => {
+      window
+        .cancelAnimationFrame(
+          frame,
+        );
+    };
+  }, [
+    focusMode,
+    blastRadius,
+    blastRadiusState,
+    reactFlowInstance,
+  ]);
+
   const handleNodeClick =
     useCallback<
       NodeMouseHandler<
@@ -519,7 +689,13 @@ export function GraphExplorer({
           node.id,
         );
 
-        if (!reactFlowInstance) {
+        setFocusMode(
+          "connections",
+        );
+
+        if (
+          !reactFlowInstance
+        ) {
           return;
         }
 
@@ -546,25 +722,27 @@ export function GraphExplorer({
           },
         );
 
-        window.requestAnimationFrame(
-          () => {
-            void reactFlowInstance.fitView(
-              {
-                nodes: Array.from(
-                  neighborhoodIds,
-                ).map(
-                  (id) => ({
-                    id,
-                  }),
-                ),
+        window
+          .requestAnimationFrame(
+            () => {
+              void reactFlowInstance.fitView(
+                {
+                  nodes:
+                    Array.from(
+                      neighborhoodIds,
+                    ).map(
+                      (id) => ({
+                        id,
+                      }),
+                    ),
 
-                padding: 0.45,
-                maxZoom: 1,
-                duration: 400,
-              },
-            );
-          },
-        );
+                  padding: 0.45,
+                  maxZoom: 1,
+                  duration: 400,
+                },
+              );
+            },
+          );
       },
       [
         reactFlowInstance,
@@ -574,15 +752,68 @@ export function GraphExplorer({
 
   const handlePaneClick =
     useCallback(() => {
-      setSelectedNodeId(null);
+      setSelectedNodeId(
+        null,
+      );
+
+      setFocusMode(
+        "connections",
+      );
+    }, []);
+
+  const handleCloseInspector =
+    useCallback(() => {
+      setSelectedNodeId(
+        null,
+      );
+
+      setFocusMode(
+        "connections",
+      );
     }, []);
 
   const handleReset =
     useCallback(() => {
       setSearch("");
-      setActiveFilter("All");
-      setSelectedNodeId(null);
+
+      setActiveFilter(
+        "All",
+      );
+
+      setSelectedNodeId(
+        null,
+      );
+
+      setFocusMode(
+        "connections",
+      );
     }, []);
+
+  const handleFocusModeChange =
+    useCallback(
+      (
+        mode: GraphFocusMode,
+      ) => {
+        setFocusMode(mode);
+
+        if (
+          mode ===
+          "blast-radius"
+        ) {
+          /*
+           * Blast radius needs the
+           * complete graph available,
+           * so clear visual filters.
+           */
+          setSearch("");
+
+          setActiveFilter(
+            "All",
+          );
+        }
+      },
+      [],
+    );
 
   return (
     <div className="relative h-[calc(100vh-190px)] min-h-[620px] overflow-hidden rounded-2xl border border-white/10 bg-[#080b12]">
@@ -677,29 +908,83 @@ export function GraphExplorer({
         <>
           <GraphNodeInspector
             node={selectedNode}
-            onClose={() => {
-              setSelectedNodeId(
-                null,
-              );
-            }}
+            focusMode={
+              focusMode
+            }
+            blastRadiusSummary={
+              blastRadius
+                ?.summary
+            }
+            isBlastRadiusLoading={
+              isBlastRadiusLoading
+            }
+            isBlastRadiusError={
+              isBlastRadiusError
+            }
+            onFocusModeChange={
+              handleFocusModeChange
+            }
+            onClose={
+              handleCloseInspector
+            }
           />
 
-          <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 hidden -translate-x-1/2 rounded-full border border-violet-400/15 bg-[#0d111b]/90 px-4 py-2 text-xs text-slate-400 shadow-xl backdrop-blur sm:block">
-            <span className="font-medium text-violet-300">
-              Focused:
-            </span>{" "}
-            {selectedNode.name}
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 hidden -translate-x-1/2 rounded-full border border-white/10 bg-[#0d111b]/90 px-4 py-2 text-xs text-slate-400 shadow-xl backdrop-blur sm:block">
+            {focusMode ===
+              "blast-radius" &&
+            isBlastRadiusLoading ? (
+              <span className="text-amber-300">
+                Calculating blast
+                radius...
+              </span>
+            ) : blastRadiusActive &&
+              blastRadius ? (
+              <>
+                <span className="font-medium text-amber-300">
+                  Blast Radius:
+                </span>{" "}
+                {selectedNode.name}
 
-            <span className="mx-2 text-slate-700">
-              •
-            </span>
+                <span className="mx-2 text-slate-700">
+                  •
+                </span>
 
-            {
-              connectionState
-                .connectedEdgeIds
-                .size
-            }{" "}
-            direct relationships
+                {
+                  blastRadius
+                    .summary
+                    .affectedComponents
+                }{" "}
+                affected
+
+                <span className="mx-2 text-slate-700">
+                  •
+                </span>
+
+                depth{" "}
+                {
+                  blastRadius
+                    .summary
+                    .maximumDepth
+                }
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-violet-300">
+                  Focused:
+                </span>{" "}
+                {selectedNode.name}
+
+                <span className="mx-2 text-slate-700">
+                  •
+                </span>
+
+                {
+                  connectionState
+                    .edgeIds.size
+                }{" "}
+                direct relationships
+              </>
+            )}
           </div>
         </>
       ) : null}
