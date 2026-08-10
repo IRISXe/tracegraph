@@ -9,6 +9,7 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { GraphPage } from "../pages/GraphPage";
 import { IncidentsPage } from "../pages/IncidentsPage";
 import { ServicesPage } from "../pages/ServicesPage";
+import { ServiceDetailPage } from "../pages/ServiceDetailPage";
 
 export function AppRouter() {
   return (
@@ -46,6 +47,11 @@ export function AppRouter() {
       </Route>
 
       <Route
+  path="/services/:id"
+  element={<ServiceDetailPage />}
+/>
+
+      <Route
         path="*"
         element={
           <Navigate
@@ -55,5 +61,6 @@ export function AppRouter() {
         }
       />
     </Routes>
+    
   );
 }
