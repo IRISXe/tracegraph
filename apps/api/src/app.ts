@@ -4,7 +4,7 @@ import express from "express";
 import { env } from "./config/env";
 import { errorHandler } from "./middleware/error-handler";
 import serviceRouter from "./modules/services/service.routes";
-
+import dashboardRouter from "./modules/dashboard/dashboard.routes";
 const app = express();
 
 app.use(
@@ -22,8 +22,9 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.use("/api/dashboard", dashboardRouter);
+
 app.use("/api/services", serviceRouter);
 
 app.use(errorHandler);
-
 export default app;
