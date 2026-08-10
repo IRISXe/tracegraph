@@ -8,6 +8,7 @@ import { notFoundHandler } from "./middleware/not-found";
 
 import dashboardRouter from "./modules/dashboard/dashboard.routes";
 import graphRouter from "./modules/graph/graph.routes";
+import healthRouter from "./modules/health/health.routes";
 import incidentRouter from "./modules/incidents/incident.routes";
 import serviceRouter from "./modules/services/service.routes";
 
@@ -22,25 +23,19 @@ app.use(
   }),
 );
 
-app.use(express.json());
-
-/*
- * Health check
- */
-app.get(
-  "/health",
-  (_req, res) => {
-    res.status(200).json({
-      data: {
-        status: "ok",
-        service: "tracegraph-api",
-      },
-    });
-  },
+app.use(
+  express.json(),
 );
 
 /*
- * Application routes
+ * Health and readiness
+ */
+app.use(
+  healthRouter,
+);
+
+/*
+ * Feature routes
  */
 app.use(
   "/api/dashboard",
@@ -63,15 +58,15 @@ app.use(
 );
 
 /*
- * Catch requests that didn't
- * match any route above.
+ * Unknown routes
  */
-app.use(notFoundHandler);
+app.use(
+  notFoundHandler,
+);
 
 /*
- * Error handler must always
- * remain last.
+ * Centralized error handling
  */
-app.use(errorHandler);
-
-export default app;
+app.use(
+  errorHandler,
+);

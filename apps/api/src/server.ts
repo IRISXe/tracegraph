@@ -1,43 +1,84 @@
-import app from "./app";
+import type {
+  Server,
+} from "node:http";
+
+import { app } from "./app";
 import { env } from "./config/env";
+
 import {
   closeDatabaseConnection,
-  testDatabaseQuery,
   verifyDatabaseConnection,
 } from "./db/cognodb";
+
+let server: Server | undefined;
 
 async function startServer() {
   try {
     await verifyDatabaseConnection();
 
-    console.log("CognoDB connection established");
+    console.log(
+      "CognoDB connection established",
+    );
+  } catch (error) {
+    console.error(
+      "CognoDB is unavailable at startup. TraceGraph API will continue running.",
+    );
 
-    const databaseMessage = await testDatabaseQuery();
+    if (error instanceof Error) {
+      console.error(
+        error.message,
+      );
+    }
+  }
 
-    console.log(databaseMessage);
-
-    app.listen(env.PORT, () => {
+  server = app.listen(
+    env.PORT,
+    () => {
       console.log(
         `TraceGraph API running on http://localhost:${env.PORT}`,
       );
-    });
-  } catch (error) {
-    console.error("Failed to connect to CognoDB");
-    console.error(error);
-
-    process.exit(1);
-  }
+    },
+  );
 }
 
-async function shutdown() {
-  console.log("Shutting down TraceGraph API...");
+async function shutdown(
+  signal: string,
+) {
+  console.log(
+    `${signal} received. Shutting down TraceGraph API...`,
+  );
+
+  if (server) {
+    await new Promise<void>(
+      (resolve) => {
+        server?.close(() => {
+          resolve();
+        });
+      },
+    );
+  }
 
   await closeDatabaseConnection();
+
+  console.log(
+    "TraceGraph API shutdown complete",
+  );
 
   process.exit(0);
 }
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+process.on(
+  "SIGINT",
+  () => {
+    void shutdown("SIGINT");
+  },
+);
+
+process.on(
+  "SIGTERM",
+  () => {
+    void shutdown("SIGTERM");
+  },
+);
 
 void startServer();

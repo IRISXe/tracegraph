@@ -8,10 +8,27 @@ export const driver = neo4j.driver(
     env.COGNODB_USERNAME,
     env.COGNODB_PASSWORD,
   ),
+  {
+    connectionTimeout: 5000,
+  },
 );
 
 export async function verifyDatabaseConnection() {
   await driver.verifyConnectivity();
+}
+
+export async function checkDatabaseReadiness(): Promise<boolean> {
+  try {
+    await driver.verifyConnectivity();
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function closeDatabaseConnection() {
+  await driver.close();
 }
 
 export async function testDatabaseQuery() {
@@ -20,19 +37,18 @@ export async function testDatabaseQuery() {
   try {
     const result = await session.run(
       `
-      RETURN $message AS message
+        RETURN $message AS message
       `,
       {
-        message: "TraceGraph connected to CognoDB",
+        message:
+          "TraceGraph connected to CognoDB",
       },
     );
 
-    return result.records[0]?.get("message");
+    return result.records[0]?.get(
+      "message",
+    );
   } finally {
     await session.close();
   }
-}
-
-export async function closeDatabaseConnection() {
-  await driver.close();
 }
