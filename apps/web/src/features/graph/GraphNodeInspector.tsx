@@ -101,7 +101,7 @@ export function GraphNodeInspector({
     );
 
   return (
-    <aside className="absolute right-4 top-4 z-30 w-[340px] max-w-[calc(100%-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0d111b]/95 shadow-2xl backdrop-blur-xl">
+    <aside className="absolute right-4 top-32 z-30 w-[340px] max-w-[calc(100%-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0d111b]/95 shadow-2xl backdrop-blur-xl lg:top-4">
       <div className="flex items-start justify-between border-b border-white/10 p-5">
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/15 bg-violet-500/10 text-violet-300">
