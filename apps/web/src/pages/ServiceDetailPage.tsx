@@ -320,7 +320,9 @@ export function ServiceDetailPage() {
               <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
                 <Mail size={15} />
 
-                <span>{owner.email}</span>
+                <span className="break-all">
+                {owner.email}
+               </span>
               </div>
             </div>
           ) : (

@@ -20,7 +20,7 @@ export function ServiceCard({
       to={`/services/${service.id}`}
       className="group block rounded-2xl border border-white/10 bg-white/[0.025] p-5 transition hover:border-violet-400/20 hover:bg-white/[0.045]"
     >
-      <div className="flex items-start justify-between gap-6">
+     <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition group-hover:border-violet-400/20 group-hover:text-violet-300">
             <Box size={19} />
@@ -55,7 +55,7 @@ export function ServiceCard({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-4">
+        <div className="flex shrink-0 items-center justify-between gap-4 sm:justify-start">
           <StatusBadge
             status={service.status}
           />
