@@ -25,16 +25,23 @@ export async function findGraphTopology(): Promise<GraphTopology> {
         node,
         labels(node) AS labels
 
-      ORDER BY node.name, node.id
+      ORDER BY
+        coalesce(node.name, node.title, node.id),
+        node.id
     `);
 
-    const nodes: GraphNode[] = nodeResult.records.map(
-      (record) => {
+    const nodes: GraphNode[] =
+      nodeResult.records.map((record) => {
         const node = record.get("node");
-        const labels = record.get("labels") as string[];
+
+        const labels =
+          record.get("labels") as string[];
 
         const properties =
-          node.properties as Record<string, unknown>;
+          node.properties as Record<
+            string,
+            unknown
+          >;
 
         const {
           id,
@@ -44,18 +51,28 @@ export async function findGraphTopology(): Promise<GraphTopology> {
           ...metadata
         } = properties;
 
+        /*
+         * Most graph nodes use "name".
+         *
+         * Incidents use "title" instead,
+         * so fall back to title before id.
+         */
+        const displayName =
+          name ??
+          properties.title ??
+          id;
+
         return {
           id: String(id),
 
-          type: labels[0] as GraphNode["type"],
+          type:
+            labels[0] as GraphNode["type"],
 
-          name:
-            name !== undefined
-              ? String(name)
-              : String(id),
+          name: String(displayName),
 
           status:
-            status === undefined || status === null
+            status === undefined ||
+            status === null
               ? null
               : String(status),
 
@@ -67,39 +84,52 @@ export async function findGraphTopology(): Promise<GraphTopology> {
 
           metadata,
         };
-      },
-    );
+      });
 
-    const edgeResult = await session.run(`
-      MATCH (source)-[relationship]->(target)
+    const edgeResult =
+      await session.run(`
+        MATCH
+          (source)-[relationship]->(target)
 
-      WHERE
-        source.id IS NOT NULL
-        AND target.id IS NOT NULL
+        WHERE
+          source.id IS NOT NULL
+          AND target.id IS NOT NULL
 
-      RETURN
-        source.id AS source,
-        target.id AS target,
-        type(relationship) AS relationshipType
+        RETURN
+          source.id AS source,
+          target.id AS target,
+          type(relationship) AS relationshipType
 
-      ORDER BY source, target
-    `);
+        ORDER BY
+          source,
+          target
+      `);
 
     const edges: GraphEdge[] =
-      edgeResult.records.map((record, index) => {
-        const source = String(record.get("source"));
-        const target = String(record.get("target"));
-        const type = String(
-          record.get("relationshipType"),
-        ) as GraphEdge["type"];
+      edgeResult.records.map(
+        (record, index) => {
+          const source = String(
+            record.get("source"),
+          );
 
-        return {
-          id: `${source}-${type}-${target}-${index}`,
-          source,
-          target,
-          type,
-        };
-      });
+          const target = String(
+            record.get("target"),
+          );
+
+          const type = String(
+            record.get(
+              "relationshipType",
+            ),
+          ) as GraphEdge["type"];
+
+          return {
+            id: `${source}-${type}-${target}-${index}`,
+            source,
+            target,
+            type,
+          };
+        },
+      );
 
     return {
       nodes,

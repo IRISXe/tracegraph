@@ -11,6 +11,7 @@ import type {
   GraphNode,
   GraphNodeType,
   GraphTopology,
+  GraphRelationshipType,
 } from "./graph.types";
 
 interface LayoutConfig {
@@ -18,6 +19,18 @@ interface LayoutConfig {
   startY: number;
   gap: number;
 }
+
+const relationshipLabels: Record<
+  GraphRelationshipType,
+  string
+> = {
+  DEPENDS_ON: "depends on",
+  USES: "uses",
+  CALLS: "calls",
+  OWNS: "owns",
+  AFFECTED: "affected",
+  CAUSED_BY: "caused by",
+};
 
 const layout: Record<
   GraphNodeType,
@@ -76,15 +89,18 @@ function createPositions(
   };
 
   return graphNodes.map((node) => {
-    const config = layout[node.type];
+    const config =
+      layout[node.type];
 
     const index =
       counters[node.type]++;
 
     return {
       node,
+
       position: {
         x: config.x,
+
         y:
           config.startY +
           index * config.gap,
@@ -120,7 +136,8 @@ export function transformGraphToFlow(
           status: node.status,
           criticality:
             node.criticality,
-          metadata: node.metadata,
+          metadata:
+            node.metadata,
         },
       }),
     );
@@ -129,15 +146,23 @@ export function transformGraphToFlow(
     topology.edges.map(
       (edge) => ({
         id: edge.id,
-        source: edge.source,
-        target: edge.target,
+
+        source:
+          edge.source,
+
+        target:
+          edge.target,
 
         type: "smoothstep",
 
-        label: edge.type,
+        label:
+          relationshipLabels[
+            edge.type
+          ],
 
         markerEnd: {
-          type: MarkerType.Arrow,
+          type:
+            MarkerType.Arrow,
         },
 
         style: {

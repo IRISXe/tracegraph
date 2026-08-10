@@ -98,8 +98,8 @@ export function InfrastructureNode({
         className={[
           "w-56 rounded-2xl border bg-[#0d111b]/95 p-4 shadow-xl backdrop-blur transition",
           selected
-            ? "border-violet-400/60 ring-2 ring-violet-400/15"
-            : "border-white/10",
+  ? "border-violet-400/70 ring-2 ring-violet-400/20 shadow-[0_0_35px_rgba(139,92,246,0.12)]"
+  : "border-white/10"
         ].join(" ")}
       >
         <div className="flex items-start gap-3">
