@@ -5,6 +5,8 @@ import { env } from "./config/env";
 import { errorHandler } from "./middleware/error-handler";
 import serviceRouter from "./modules/services/service.routes";
 import dashboardRouter from "./modules/dashboard/dashboard.routes";
+import incidentRouter from "./modules/incidents/incident.routes";
+
 const app = express();
 
 app.use(
@@ -12,8 +14,6 @@ app.use(
     origin: env.CORS_ORIGIN,
   }),
 );
-
-app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
@@ -26,5 +26,8 @@ app.use("/api/dashboard", dashboardRouter);
 
 app.use("/api/services", serviceRouter);
 
+app.use("/api/incidents", incidentRouter);
+
 app.use(errorHandler);
+
 export default app;
