@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useState,
 } from "react";
 
 import {
@@ -11,6 +12,7 @@ import {
   ReactFlow,
   useEdgesState,
   useNodesState,
+  type NodeMouseHandler,
 } from "@xyflow/react";
 
 import type {
@@ -18,6 +20,7 @@ import type {
   InfrastructureFlowNode,
 } from "./graph-flow.types";
 
+import { GraphNodeInspector } from "./GraphNodeInspector";
 import { InfrastructureNode } from "./InfrastructureNode";
 import { transformGraphToFlow } from "./graph-layout";
 
@@ -30,39 +33,53 @@ interface GraphExplorerProps {
 }
 
 const nodeTypes = {
-  infrastructure:
-    InfrastructureNode,
+  infrastructure: InfrastructureNode,
 };
 
 export function GraphExplorer({
   topology,
 }: GraphExplorerProps) {
-  const transformed =
-    useMemo(
-      () =>
-        transformGraphToFlow(
-          topology,
-        ),
-      [topology],
-    );
+  const transformed = useMemo(
+    () => transformGraphToFlow(topology),
+    [topology],
+  );
 
   const [
     nodes,
     setNodes,
     onNodesChange,
-  ] =
-    useNodesState<InfrastructureFlowNode>(
-      [],
-    );
+  ] = useNodesState<InfrastructureFlowNode>(
+    [],
+  );
 
   const [
     edges,
     setEdges,
     onEdgesChange,
-  ] =
-    useEdgesState<InfrastructureFlowEdge>(
-      [],
+  ] = useEdgesState<InfrastructureFlowEdge>(
+    [],
+  );
+
+  const [
+    selectedNodeId,
+    setSelectedNodeId,
+  ] = useState<string | null>(null);
+
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeId) {
+      return null;
+    }
+
+    return (
+      topology.nodes.find(
+        (node) =>
+          node.id === selectedNodeId,
+      ) ?? null
     );
+  }, [
+    selectedNodeId,
+    topology.nodes,
+  ]);
 
   useEffect(() => {
     setNodes(transformed.nodes);
@@ -73,8 +90,21 @@ export function GraphExplorer({
     setEdges,
   ]);
 
+  const handleNodeClick: NodeMouseHandler<
+    InfrastructureFlowNode
+  > = (
+    _event,
+    node,
+  ) => {
+    setSelectedNodeId(node.id);
+  };
+
+  function handlePaneClick() {
+    setSelectedNodeId(null);
+  }
+
   return (
-    <div className="h-[calc(100vh-190px)] min-h-[620px] overflow-hidden rounded-2xl border border-white/10 bg-[#080b12]">
+    <div className="relative h-[calc(100vh-190px)] min-h-[620px] overflow-hidden rounded-2xl border border-white/10 bg-[#080b12]">
       <ReactFlow<
         InfrastructureFlowNode,
         InfrastructureFlowEdge
@@ -82,12 +112,10 @@ export function GraphExplorer({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodesChange={
-          onNodesChange
-        }
-        onEdgesChange={
-          onEdgesChange
-        }
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
         fitView
         fitViewOptions={{
           padding: 0.15,
@@ -98,9 +126,7 @@ export function GraphExplorer({
         deleteKeyCode={null}
       >
         <Background
-          variant={
-            BackgroundVariant.Dots
-          }
+          variant={BackgroundVariant.Dots}
           gap={22}
           size={1}
         />
@@ -112,6 +138,15 @@ export function GraphExplorer({
           zoomable
         />
       </ReactFlow>
+
+      {selectedNode ? (
+        <GraphNodeInspector
+          node={selectedNode}
+          onClose={() => {
+            setSelectedNodeId(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
