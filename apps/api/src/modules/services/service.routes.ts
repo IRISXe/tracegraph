@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   getDependencies,
   getDependents,
+  getOwner,
   getService,
   listServices,
 } from "./service.controller";
@@ -19,6 +20,11 @@ serviceRouter.get(
 serviceRouter.get(
   "/:id/dependents",
   getDependents,
+);
+
+serviceRouter.get(
+  "/:id/owner",
+  getOwner,
 );
 
 serviceRouter.get("/:id", getService);

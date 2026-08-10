@@ -4,6 +4,7 @@ import type {
   Service,
   ServiceDependency,
   ServiceDependent,
+  ServiceOwner,
 } from "./service.types";
 
 
@@ -170,6 +171,44 @@ export async function findServiceDependents(
         depth: Number(depth.toString()),
       };
     });
+  } finally {
+    await session.close();
+  }
+}
+export async function findServiceOwner(
+  serviceId: string,
+): Promise<ServiceOwner | null> {
+  const session = driver.session();
+
+  try {
+    const result = await session.run(
+      `
+      MATCH (team:Team)-[:OWNS]->(
+        service:Service {id: $serviceId}
+      )
+
+      RETURN team
+
+      LIMIT 1
+      `,
+      {
+        serviceId,
+      },
+    );
+
+    const record = result.records[0];
+
+    if (!record) {
+      return null;
+    }
+
+    const team = record.get("team");
+
+    return {
+      id: String(team.properties.id),
+      name: String(team.properties.name),
+      email: String(team.properties.email),
+    };
   } finally {
     await session.close();
   }

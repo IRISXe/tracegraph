@@ -8,6 +8,7 @@ import {
   getServiceById,
   getServiceDependencies,
   getServiceDependents,
+  getServiceOwner,
   getServices,
 } from "./service.service";
 
@@ -67,6 +68,23 @@ export async function getDependents(
 ) {
   try {
     const result = await getServiceDependents(
+      req.params.id,
+    );
+
+    res.status(200).json({
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+export async function getOwner(
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await getServiceOwner(
       req.params.id,
     );
 

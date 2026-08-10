@@ -45,3 +45,8 @@ export interface ServiceDependent {
   criticality: string;
   depth: number;
 }
+export interface ServiceOwner {
+  id: string;
+  name: string;
+  email: string;
+}
