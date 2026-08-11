@@ -4,18 +4,46 @@ import {
   Routes,
 } from "react-router";
 
-import { AppShell } from "../components/layout/AppShell";
-import { DashboardPage } from "../pages/DashboardPage";
-import { GraphPage } from "../pages/GraphPage";
-import { IncidentsPage } from "../pages/IncidentsPage";
-import { ServicesPage } from "../pages/ServicesPage";
-import { ServiceDetailPage } from "../pages/ServiceDetailPage";
-import { IncidentDetailPage } from "../pages/IncidentDetailPage";
+import {
+  AppShell,
+} from "../components/layout/AppShell";
+
+import {
+  DashboardPage,
+} from "../pages/DashboardPage";
+
+import {
+  GraphPage,
+} from "../pages/GraphPage";
+
+import {
+  IncidentDetailPage,
+} from "../pages/IncidentDetailPage";
+
+import {
+  IncidentsPage,
+} from "../pages/IncidentsPage";
+
+import {
+  NotFoundPage,
+} from "../pages/not-found-page";
+
+import {
+  ServiceDetailPage,
+} from "../pages/ServiceDetailPage";
+
+import {
+  ServicesPage,
+} from "../pages/ServicesPage";
 
 export function AppRouter() {
   return (
     <Routes>
-      <Route element={<AppShell />}>
+      <Route
+        element={<AppShell />}
+      >
+        {/* Default route */}
+
         <Route
           path="/"
           element={
@@ -26,47 +54,65 @@ export function AppRouter() {
           }
         />
 
-        <Route
-          path="/dashboard"
-          element={<DashboardPage />}
-        />
+        {/* Dashboard */}
 
         <Route
-          path="/services"
-          element={<ServicesPage />}
+          path="/dashboard"
+          element={
+            <DashboardPage />
+          }
         />
+
+        {/* Dependency Graph */}
 
         <Route
           path="/graph"
-          element={<GraphPage />}
+          element={
+            <GraphPage />
+          }
+        />
+
+        {/* Services */}
+
+        <Route
+          path="/services"
+          element={
+            <ServicesPage />
+          }
         />
 
         <Route
+          path="/services/:id"
+          element={
+            <ServiceDetailPage />
+          }
+        />
+
+        {/* Incidents */}
+
+        <Route
           path="/incidents"
-          element={<IncidentsPage />}
+          element={
+            <IncidentsPage />
+          }
+        />
+
+        <Route
+          path="/incidents/:id"
+          element={
+            <IncidentDetailPage />
+          }
+        />
+
+        {/* 404 */}
+
+        <Route
+          path="*"
+          element={
+            <NotFoundPage />
+          }
         />
       </Route>
-
-      <Route
-  path="/services/:id"
-  element={<ServiceDetailPage />}
-/>
-
-      <Route
-        path="/incidents/:id"
-        element={<IncidentDetailPage />}
-      />
-
-      <Route
-        path="*"
-        element={
-          <Navigate
-            to="/dashboard"
-            replace
-          />
-        }
-      />
     </Routes>
-    
   );
 }

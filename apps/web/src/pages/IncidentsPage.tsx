@@ -1,26 +1,58 @@
-import { useIncidents } from "../features/incidents/use-incidents";
-import { IncidentCard } from "../features/incidents/IncidentCard";
-import { IncidentsError } from "../features/incidents/IncidentsError";
-import { IncidentsSkeleton } from "../features/incidents/IncidentsSkeleton";
+import {
+  ApiErrorState,
+} from "../components/feedback/ApiErrorState";
+
+import {
+  IncidentCard,
+} from "../features/incidents/IncidentCard";
+
+import {
+  IncidentsSkeleton,
+} from "../features/incidents/IncidentsSkeleton";
+
+import {
+  useIncidents,
+} from "../features/incidents/use-incidents";
 
 export function IncidentsPage() {
   const {
     data,
     isLoading,
     isError,
+    error,
     refetch,
   } = useIncidents();
 
   if (isLoading) {
-    return <IncidentsSkeleton />;
+    return (
+      <IncidentsSkeleton />
+    );
   }
 
-  if (isError || !data) {
+  if (isError) {
     return (
-      <IncidentsError
+      <ApiErrorState
+        error={error}
         onRetry={() => {
           void refetch();
         }}
+        title="Unable to load incidents"
+      />
+    );
+  }
+
+  if (!data) {
+    return (
+      <ApiErrorState
+        error={
+          new Error(
+            "Incident data is unavailable",
+          )
+        }
+        onRetry={() => {
+          void refetch();
+        }}
+        title="Unable to load incidents"
       />
     );
   }
@@ -28,7 +60,8 @@ export function IncidentsPage() {
   const activeIncidents =
     data.filter(
       (incident) =>
-        incident.status !== "resolved",
+        incident.status !==
+        "resolved",
     ).length;
 
   return (
@@ -44,8 +77,9 @@ export function IncidentsPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            Investigate production incidents,
-            affected services and root causes.
+            Investigate production
+            incidents, affected services
+            and root causes.
           </p>
         </div>
 
@@ -62,18 +96,21 @@ export function IncidentsPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Production incidents will appear
-            here when recorded.
+            Production incidents
+            will appear here when
+            recorded.
           </p>
         </div>
       ) : (
         <div className="mt-8 space-y-3">
-          {data.map((incident) => (
-            <IncidentCard
-              key={incident.id}
-              incident={incident}
-            />
-          ))}
+          {data.map(
+            (incident) => (
+              <IncidentCard
+                key={incident.id}
+                incident={incident}
+              />
+            ),
+          )}
         </div>
       )}
     </section>

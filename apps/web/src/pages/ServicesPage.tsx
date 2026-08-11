@@ -1,66 +1,118 @@
 import {
   Search,
 } from "lucide-react";
+
 import {
   useMemo,
   useState,
 } from "react";
 
-import { ServiceCard } from "../features/services/ServiceCard";
-import { ServicesError } from "../features/services/ServicesError";
-import { ServicesSkeleton } from "../features/services/ServicesSkeleton";
-import { useServices } from "../features/services/use-services";
+import {
+  ApiErrorState,
+} from "../components/feedback/ApiErrorState";
+
+import {
+  ServiceCard,
+} from "../features/services/ServiceCard";
+
+import {
+  ServicesSkeleton,
+} from "../features/services/ServicesSkeleton";
+
+import {
+  useServices,
+} from "../features/services/use-services";
 
 export function ServicesPage() {
-  const [search, setSearch] = useState("");
+  const [
+    search,
+    setSearch,
+  ] = useState("");
 
   const {
     data,
     isLoading,
     isError,
+    error,
     refetch,
   } = useServices();
 
-  const filteredServices = useMemo(() => {
-    if (!data) {
-      return [];
-    }
+  const filteredServices =
+    useMemo(() => {
+      if (!data) {
+        return [];
+      }
 
-    const query =
-      search.trim().toLowerCase();
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-    if (!query) {
-      return data;
-    }
+      if (!query) {
+        return data;
+      }
 
-    return data.filter((service) => {
-      return (
-        service.name
-          .toLowerCase()
-          .includes(query) ||
-        service.description
-          .toLowerCase()
-          .includes(query)
+      return data.filter(
+        (service) => {
+          return (
+            service.name
+              .toLowerCase()
+              .includes(query) ||
+            service.description
+              .toLowerCase()
+              .includes(query)
+          );
+        },
       );
-    });
-  }, [data, search]);
+    }, [data, search]);
 
+  /*
+   * Loading
+   */
   if (isLoading) {
-    return <ServicesSkeleton />;
+    return (
+      <ServicesSkeleton />
+    );
   }
 
-  if (isError || !data) {
+  /*
+   * API / database error
+   */
+  if (isError) {
     return (
-      <ServicesError
+      <ApiErrorState
+        error={error}
         onRetry={() => {
           void refetch();
         }}
+        title="Unable to load services"
+      />
+    );
+  }
+
+  /*
+   * Defensive fallback
+   */
+  if (!data) {
+    return (
+      <ApiErrorState
+        error={
+          new Error(
+            "Service data is unavailable",
+          )
+        }
+        onRetry={() => {
+          void refetch();
+        }}
+        title="Unable to load services"
       />
     );
   }
 
   return (
     <section>
+      {/* Header */}
+
       <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
         <div>
           <p className="text-sm font-medium text-violet-400">
@@ -79,26 +131,44 @@ export function ServicesPage() {
         </div>
 
         <div className="text-sm text-slate-500">
-          {data.length} services monitored
+          {data.length}{" "}
+          services monitored
         </div>
       </div>
+
+      {/* Search */}
 
       <div className="relative mt-8 max-w-md">
         <Search
           size={17}
+          aria-hidden="true"
           className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
         />
 
+        <label
+          htmlFor="service-search"
+          className="sr-only"
+        >
+          Search services
+        </label>
+
         <input
+          id="service-search"
           type="search"
           value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
+          onChange={(
+            event,
+          ) => {
+            setSearch(
+              event.target.value,
+            );
           }}
           placeholder="Search services..."
-          className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.025] pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-violet-400/30 focus:bg-white/[0.04]"
+          className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.025] pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-violet-400/30 focus:bg-white/[0.04] focus:ring-2 focus:ring-violet-500/10"
         />
       </div>
+
+      {/* No services */}
 
       {data.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-6 py-16 text-center">
@@ -107,22 +177,30 @@ export function ServicesPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Services will appear here once
-            infrastructure data is available.
+            Services will appear
+            here once infrastructure
+            data is available.
           </p>
         </div>
-      ) : filteredServices.length === 0 ? (
+      ) : filteredServices.length ===
+        0 ? (
+        /*
+         * Search returned no results
+         */
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-6 py-16 text-center">
           <p className="text-sm font-medium text-slate-300">
             No matching services
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Try searching with a different
-            service name.
+            Try searching with a
+            different service name.
           </p>
         </div>
       ) : (
+        /*
+         * Services
+         */
         <div className="mt-8 space-y-3">
           {filteredServices.map(
             (service) => (
